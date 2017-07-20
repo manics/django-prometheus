@@ -10,6 +10,7 @@ import socket
 import logging
 import os
 import prometheus_client
+import prometheus_client.multiprocess
 import threading
 
 
@@ -105,7 +106,12 @@ def ExportToDjangoView(request):
 
     You can use django_prometheus.urls to map /metrics to this view.
     """
-    metrics_page = prometheus_client.generate_latest()
+    if os.getenv('prometheus_multiproc_dir'):
+        registry = prometheus_client.CollectorRegistry()
+        prometheus_client.multiprocess.MultiProcessCollector(registry)
+        metrics_page = prometheus_client.generate_latest(registry)
+    else:
+        metrics_page = prometheus_client.generate_latest()
     return HttpResponse(
         metrics_page,
         content_type=prometheus_client.CONTENT_TYPE_LATEST)
